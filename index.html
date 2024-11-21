@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resume Reader</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <style>
+    .container {
+      width: 80%;
+      margin: auto;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+    }
+    .text-output {
+      border: 1px solid #ddd;
+      padding: 10px;
+      margin-top: 20px;
+      max-height: 300px;
+      overflow-y: auto;
+      background-color: #f9f9f9;
+    }
+    button {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Resume Upload and Viewer</h1>
+    <form id="resumeForm">
+      <!-- File Upload -->
+      <label for="resumeUpload">Upload Your Resume:</label>
+      <input type="file" id="resumeUpload" name="resumeUpload" accept=".pdf" required>
+
+      <!-- Question Type -->
+      <label for="questionType">Select Question Type:</label>
+      <select id="questionType" name="questionType" required>
+        <option value="" disabled selected>Select an option</option>
+        <option value="technical">Technical</option>
+        <option value="nonTechnical">Non-Technical</option>
+        <option value="both">Both</option>
+      </select>
+
+      <!-- Company Name -->
+      <label for="companyName">Enter Company Name:</label>
+      <input type="text" id="companyName" name="companyName" placeholder="e.g., Google" required>
+
+      <!-- Submit Button -->
+      <button type="submit">Submit</button>
+    </form>
+
+    <h2>Extracted Text:</h2>
+    <div id="textOutput" class="text-output"></div>
+  </div>
+
+  <script>
+    // Handle form submission
+    document.getElementById('resumeForm').addEventListener('submit', async (event) => {
+      event.preventDefault(); // Prevent form from refreshing the page
+
+      const fileInput = document.getElementById("resumeUpload");
+      const questionType = document.getElementById("questionType").value;
+      const companyName = document.getElementById("companyName").value;
+      const textOutput = document.getElementById("textOutput");
+
+      if (!fileInput.files.length) {
+        alert("Please upload a resume.");
+        return;
+      }
+
+      const file = fileInput.files[0];
+
+      if (file.type !== "application/pdf") {
+        alert("Please upload a valid PDF file.");
+        return;
+      }
+
+      // Clear the previous content
+      textOutput.innerHTML = "<strong>Processing...</strong>";
+
+      // Read the file as an ArrayBuffer
+      const fileReader = new FileReader();
+      fileReader.onload = async function () {
+        const pdfData = new Uint8Array(this.result);
+
+        // Load the PDF using PDF.js
+        const loadingTask = pdfjsLib.getDocument(pdfData);
+        const pdf = await loadingTask.promise;
+
+        let fullText = ""; // To store extracted text from all pages
+
+        // Extract text from each page
+        for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+          const page = await pdf.getPage(pageNumber);
+          const textContent = await page.getTextContent();
+
+          // Join text items to form the full page text
+          const pageText = textContent.items.map(item => item.str).join(" ");
+          fullText += pageText + "\n"; // Add page text to full text
+        }
+
+        // Display the extracted text
+        textOutput.textContent = fullText.trim();
+      };
+
+      fileReader.readAsArrayBuffer(file);
+    });
+  </script>
+</body>
+</html>
